@@ -28,6 +28,30 @@ class PlayerStats:
     outcome: str  # "Win" | "Loss" | "Unknown"
 
 
+@dataclass
+class ReplayResult:
+    players: list
+    duration: str  # human-readable game length, e.g. "12:34"
+    map_name: str  # the map the game was played on
+
+
+# Brood War runs at ~23.81 frames/sec on Fastest (1 frame = 42 ms), which is
+# the basis for the conventional "game length".
+_MS_PER_FRAME = 42
+
+
+def _format_duration(frames) -> str:
+    try:
+        total_seconds = int(frames) * _MS_PER_FRAME // 1000
+    except (TypeError, ValueError):
+        return "?"
+    hours, rem = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(rem, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes}:{seconds:02d}"
+
+
 _RACE_MAP = {
     "T": "Terran", "Terran": "Terran",
     "P": "Protoss", "Protoss": "Protoss", "Toss": "Protoss",
@@ -99,7 +123,7 @@ def _determine_winner(players_raw: list, cmds: list) -> Optional[int]:
     return None
 
 
-def _parse_json(data: dict) -> list:
+def _parse_json(data: dict) -> "ReplayResult":
     header = data.get("Header", {}) or {}
     computed = data.get("Computed", {}) or {}
     players_raw = header.get("Players", []) or []
@@ -144,7 +168,16 @@ def _parse_json(data: dict) -> list:
             eapm=desc.get("EAPM", 0),
             outcome=outcome,
         ))
-    return stats
+
+    duration = _format_duration(header.get("Frames", 0))
+
+    # Map name lives in Header.Map; fall back to the map-data scenario name.
+    raw_map = header.get("Map") or (data.get("MapData") or {}).get("Name") or ""
+    # Drop control chars (e.g. trailing null bytes) and collapse whitespace.
+    cleaned = "".join(ch for ch in str(raw_map) if ch >= " ")
+    map_name = " ".join(cleaned.split()) or "Unknown map"
+
+    return ReplayResult(players=stats, duration=duration, map_name=map_name)
 
 
 def _run_screp(rep_path) -> dict:
@@ -169,8 +202,8 @@ def _run_screp(rep_path) -> dict:
     return json.loads(result.stdout)
 
 
-async def parse_replay(rep_path) -> list:
-    """Parse a .rep file off the event loop and return a list of PlayerStats."""
+async def parse_replay(rep_path) -> "ReplayResult":
+    """Parse a .rep file off the event loop and return a ReplayResult."""
     loop = asyncio.get_running_loop()
     data = await loop.run_in_executor(None, _run_screp, rep_path)
     return _parse_json(data)

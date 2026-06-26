@@ -1,16 +1,20 @@
-"""Builds the Discord embed from parsed player stats."""
+"""Builds the Discord embed from a parsed ReplayResult."""
 
 import discord
 
 import config
 
 
-def build_embed(filename: str, players: list) -> discord.Embed:
+def build_embed(filename: str, result) -> discord.Embed:
     embed = discord.Embed(title=f"📊 {filename}", color=discord.Color.blue())
 
+    players = result.players
     if not players:
         embed.description = "No players found in this replay."
         return embed
+
+    # Map and game length shown under the title.
+    embed.description = f"🗺️ **{result.map_name}**  ·  ⏱️ **{result.duration}**"
 
     for p in players:
         emoji = config.RACE_EMOJI.get(p.race, config.RACE_EMOJI["Unknown"])

@@ -11,6 +11,7 @@ import discord
 import config
 from parser import parse_replay
 from embed_builder import build_embed
+from screp_setup import ensure_screp
 
 # A short id unique to THIS running process. If you ever see two different
 # instance ids (or two "Logged in" lines) in the logs, more than one copy of
@@ -72,4 +73,8 @@ if __name__ == "__main__":
             "DISCORD_TOKEN is not set. Set the environment variable "
             "(or edit config.py) before running."
         )
+    try:
+        ensure_screp()
+    except Exception as e:
+        print(f"⚠️  Could not prepare screp at startup: {e}")
     client.run(config.DISCORD_TOKEN)

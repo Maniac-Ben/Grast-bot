@@ -37,18 +37,16 @@ class ReplayResult:
 
 # Brood War runs at ~23.81 frames/sec on Fastest (1 frame = 42 ms), which is
 # the basis for the conventional "game length".
-_MS_PER_FRAME = 42
+_FRAMES_PER_SECOND = 23.81
 
 
 def _format_duration(frames) -> str:
+    # Always MM:SS (a 72-minute game shows "72:34"), matching the in-game timer.
     try:
-        total_seconds = int(frames) * _MS_PER_FRAME // 1000
-    except (TypeError, ValueError):
+        total_seconds = int(int(frames) / _FRAMES_PER_SECOND)
+    except (TypeError, ValueError, ZeroDivisionError):
         return "?"
-    hours, rem = divmod(total_seconds, 3600)
-    minutes, seconds = divmod(rem, 60)
-    if hours:
-        return f"{hours}:{minutes:02d}:{seconds:02d}"
+    minutes, seconds = divmod(total_seconds, 60)
     return f"{minutes}:{seconds:02d}"
 
 
@@ -130,13 +128,6 @@ def _parse_json(data: dict) -> "ReplayResult":
     descs = computed.get("PlayerDescs", []) or []
     cmds = _extract_cmds(data)
 
-    # APM/EAPM: match by PlayerID when available, fall back to position.
-    desc_by_id = {
-        d.get("PlayerID"): d
-        for d in descs
-        if isinstance(d, dict) and "PlayerID" in d
-    }
-
     winner_idx = _determine_winner(players_raw, cmds)
 
     stats = []
@@ -148,11 +139,9 @@ def _parse_json(data: dict) -> "ReplayResult":
         if ptype and ptype not in ("Human", "human", "h", "Computer", "computer"):
             continue
 
-        desc = desc_by_id.get(p.get("ID"))
-        if desc is None and i < len(descs) and isinstance(descs[i], dict):
-            desc = descs[i]
-        if not isinstance(desc, dict):
-            desc = {}
+        # APM/EAPM live in PlayerDescs, aligned positionally with players_raw
+        # (this mirrors the proven full bot's indexing).
+        desc = descs[i] if i < len(descs) and isinstance(descs[i], dict) else {}
 
         if winner_idx is None:
             outcome = "Unknown"

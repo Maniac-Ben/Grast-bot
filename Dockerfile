@@ -14,3 +14,5 @@ RUN python screp_setup.py
 
 # Worker process: connects out to Discord, no port needed
 CMD ["python", "-u", "bot.py"]
+
+#End

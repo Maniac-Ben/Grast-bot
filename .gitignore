@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+temp/
+# screp binary — fetched by build.sh on Railway, added manually for local dev
+screp
+screp.exe

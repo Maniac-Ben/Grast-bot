@@ -18,7 +18,7 @@ def build_embed(filename: str, result) -> discord.Embed:
 
     for p in players:
         emoji = config.RACE_EMOJI.get(p.race, config.RACE_EMOJI["Unknown"])
-        trophy = "🏆 " if p.outcome == "Win" else ""
+        trophy = "🏆 " if p.outcome == "Win" else "❌  "
         # Winner/loser hidden behind a Discord spoiler (||text||).
         outcome = f"||{trophy}{p.outcome}||"
         embed.add_field(

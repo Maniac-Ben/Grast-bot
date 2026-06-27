@@ -1,8 +1,0 @@
-.git
-.env
-__pycache__/
-*.pyc
-temp/
-screp
-screp.exe
-*.md
